@@ -38,6 +38,12 @@ grp <- data.table(
   y = 6:1
 ) %>% tbl_dt() %>% group_by(g)
 
+## grp <- data.frame(
+##   g = c(1, 2, 2, 3, 3, 3),
+##   x = 1:6,
+##   y = 6:1
+## ) %>% group_by(g)
+
 test_that("named argument become list columns", {
   out <- grp %>% do(nrow = nrow(.), ncol = ncol(.))
   expect_equal(out$nrow, list(1, 2, 3))

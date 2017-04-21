@@ -68,9 +68,16 @@ n_groups.grouped_dt <- function(x) {
   nrow(dt_subset(x, , quote(list(1))))
 }
 
+#' @importFrom dplyr group_by
 #' @export
+group_by.data.table <- function(.data, ..., add = FALSE) {
+  groups <- dplyr::group_by_prepare(.data, ..., add = add)
+  grouped_dt(groups$data, groups$groups)
+}
 #' @importFrom dplyr group_by_
+#' @export
 group_by_.data.table <- function(.data, ..., .dots, add = FALSE) {
+  ######## Need test
   groups <- dplyr::group_by_prepare(.data, ..., .dots = .dots, add = add)
   grouped_dt(groups$data, groups$groups)
 }
@@ -87,16 +94,16 @@ ungroup.grouped_dt <- function(x, ...) {
 # Do ---------------------------------------------------------------------------
 
 #' @export
-do_.grouped_dt <- function(.data, ..., .dots) {
-  args <- lazyeval::all_dots(.dots, ...)
-  env <- lazyeval::common_env(args)
-  named <- named_args(args)
+do.grouped_dt <- function(.data, ...) {
+  quos <- quos(...)
+  named <- named_args(quos)
 
   if (!named) {
-    j <- args[[1]]$expr
+    j <- f_rhs(quos[[1]])
+    env <- f_env(quos)
   } else {
-    args <- lapply(args, function(x) call("list", x$expr))
-    j <- as.call(c(quote(list), args))
+    quos <- map(quos, function(quo) lang("list", quo))
+    j <- lang("list", !!! quos)
   }
 
   out <- dt_subset(.data, , j, env = env, sd_cols = names(.data))
@@ -106,6 +113,12 @@ do_.grouped_dt <- function(.data, ..., .dots) {
   } else {
     tbl_dt(out)
   }
+}
+
+#' @export
+do_.grouped_dt <- function(.data, ..., .dots) {
+  dots <- compat_lazy_dots(.dots, env, ...)
+  do(.data, !!! dots)
 }
 
 named_args <- function(args) {
@@ -131,10 +144,14 @@ named_args <- function(args) {
 # Set operations ---------------------------------------------------------------
 
 #' @export
-distinct_.grouped_dt <- function(.data, ..., .dots) {
-  groups <- lazyeval::as.lazy_dots(groups(.data))
-  dist <- distinct_vars(.data, ..., .dots = c(.dots, groups))
-
+distinct.grouped_dt <- function(.data, ...) {
+  quos <- quos(..., .named = TRUE)
+  dist <- distinct_vars(.data, quos, group_vars(.data))
   grouped_dt(unique(dist$data, by = dist$vars), groups(.data), copy = FALSE)
+}
+#' @export
+distinct_.grouped_dt <- function(.data, ..., .dots) {
+  quos <- compat_lazy_dots(.dots, caller_env(), ...)
+  distinct(.data, !!! quos)
 }
 

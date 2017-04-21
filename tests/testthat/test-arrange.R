@@ -10,8 +10,8 @@ df2 <- data.frame(
 )
 
 equal_df <- function(x, y) {
-  rownames(x) <- NULL
-  rownames(y) <- NULL
+  attributes(x) <- NULL
+  attributes(y) <- NULL
   isTRUE(all.equal(x, y))
 }
 

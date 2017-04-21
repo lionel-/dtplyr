@@ -152,29 +152,46 @@ and_expr <- function(exprs) {
   left
 }
 
-#' @importFrom dplyr filter_
+#' @importFrom dplyr filter
 #' @export
-filter_.grouped_dt <- function(.data, ..., .dots) {
-  grouped_dt(NextMethod(), groups(.data), copy = FALSE)
-}
-
-#' @export
-filter_.tbl_dt <- function(.data, ..., .dots) {
+filter.tbl_dt <- function(.data, ...) {
   tbl_dt(NextMethod(), copy = FALSE)
 }
-
 #' @export
-filter_.data.table <- function(.data, ..., .dots) {
-  dots <- lazyeval::all_dots(.dots, ...)
-  env <- lazyeval::common_env(dots)
-
+filter.grouped_dt <- function(.data, ...) {
+  grouped_dt(NextMethod(), groups(.data), copy = FALSE)
+}
+#' @export
+filter.data.table <- function(.data, ...) {
   # http://stackoverflow.com/questions/16573995/subset-by-group-with-data-table
-  expr <- lapply(dots, `[[`, "expr")
+  all_quo <- all_exprs(...)
+  stop("ie")
+  browser()
+
+  expr <- map(quos, f_rhs)
   j <- substitute(list(`_row` = .I[expr]), list(expr = and_expr(expr)))
-  indices <- dt_subset(.data, , j, env)$`_row`
+  indices <- dt_subset(.data, , j, get_env())$`_row`
 
   .data[indices[!is.na(indices)]]
 }
+
+#' @importFrom dplyr filter_
+#' @export
+filter_.grouped_dt <- function(.data, ..., .dots) {
+  quos <- compat_lazy_dots(.dots, caller_env(), ...)
+  filter(.data, !!! quos)
+}
+#' @export
+filter_.tbl_dt <- function(.data, ..., .dots) {
+  quos <- compat_lazy_dots(.dots, caller_env(), ...)
+  filter(.data, !!! quos)
+}
+
+filter_.data.table <- function(.data, ..., .dots) {
+  quos <- compat_lazy_dots(.dots, caller_env(), ...)
+  filter(.data, !!! quos)
+}
+
 
 # Summarise --------------------------------------------------------------------
 
